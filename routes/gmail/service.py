@@ -6,20 +6,29 @@ from typing import Dict, Any, List, Optional
 from models.user_credentials import UserCredentials
 from tools.google_api import build_authorization_url, exchange_code_for_credentials
 from routes.gmail.repo import GmailRepo
+from db.mongo_connector import SingletonMeta
 import asyncio
 from functools import partial
 
 
-class GmailService:
+class GmailService(metaclass=SingletonMeta):
     """Async service layer for Gmail operations.
 
     Uses Motor (AsyncIOMotorClient) via `MongoRepo` for non-blocking DB access. Blocking
     Google API operations are executed in a thread using asyncio.to_thread.
     """
 
-    def __init__(self):
-    # Use Gmail-scoped repo backed by the shared MongoConnector
-        self._repo = GmailRepo()
+    def __init__(self, repo: GmailRepo | None = None):
+        # Guard against re-initialization when using the singleton metaclass.
+        if getattr(self, "_initialized", False):
+            # if a repo is provided after initialization, allow setting it explicitly
+            if repo is not None and getattr(self, "_repo", None) is None:
+                self._repo = repo
+            return
+
+        # Allow dependency injection of the repo for tests; fall back to default
+        self._repo = repo or GmailRepo()
+        self._initialized = True
 
     def get_flow(self, scopes, redirect_uri) -> Flow:
         """Create OAuth flow using provided scopes and redirect_uri."""
