@@ -2,7 +2,7 @@ from fastapi import FastAPI
 import uvicorn
 from starlette.middleware.cors import CORSMiddleware
 from config.settings import settings
-from routes.connect.router import router as connect_router
+from routes.gmail.router import router as connect_router
 
 app = FastAPI()
 
