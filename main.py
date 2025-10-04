@@ -6,6 +6,20 @@ from routes.gmail.router import router as gmail_router
 from routes.google.router import router as google_router
 app = FastAPI()
 
+from db.mongo_connector import MongoConnector
+
+
+@app.on_event("startup")
+async def startup_event():
+    # Initialize the MongoConnector singleton so the client is created once
+    MongoConnector()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    # Close motor client if it was created
+    MongoConnector().close()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_HOSTS,

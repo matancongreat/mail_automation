@@ -36,3 +36,15 @@ class MongoConnector(metaclass=SingletonMeta):
     def get_db(self, db_name: Optional[str] = None) -> AsyncIOMotorDatabase:
         client = self.get_client()
         return client[db_name or self._db_name]
+
+    def close(self) -> None:
+        """Close the underlying motor client if it exists."""
+        if self._client is not None:
+            try:
+                self._client.close()
+            except Exception:
+                pass
+
+    @property
+    def client(self) -> Optional[AsyncIOMotorClient]:
+        return self._client
