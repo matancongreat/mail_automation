@@ -1,9 +1,10 @@
-from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
 from config.settings import settings
 from typing import Dict, Any, List, Optional
 from models.user_credentials import UserCredentials
+from tools.google_api import build_authorization_url, exchange_code_for_credentials
 
 
 class GmailService:
@@ -18,21 +19,14 @@ class GmailService:
 
     def get_flow(self, scopes, redirect_uri) -> Flow:
         """Create OAuth flow using provided scopes and redirect_uri."""
-
-        return Flow.from_client_secrets_file(
-            settings.CLIENT_SECRETS_FILE,
-            scopes=scopes,
-            redirect_uri=redirect_uri,
-        )
+        # Delegated to tools.google_api if callers need a Flow instance.
+        # Keep this method for backward compatibility if code expects it.
+        from tools.google_api import create_flow
+        return create_flow(settings.CLIENT_SECRETS_FILE, scopes, redirect_uri)
 
     def get_authorization_url(self, scopes, redirect_uri) -> Dict[str, str]:
         # scopes and redirect_uri are required — caller must pass them explicitly.
-        flow = self.get_flow(scopes, redirect_uri)
-        authorization_url, state = flow.authorization_url(
-            access_type='offline',
-            include_granted_scopes='true',
-            prompt='consent'
-        )
+        authorization_url, state = build_authorization_url(settings.CLIENT_SECRETS_FILE, scopes, redirect_uri)
         return {"authorization_url": authorization_url, "state": state}
 
     def exchange_code_for_credentials(self, code: str, scopes, redirect_uri) -> str:
@@ -41,9 +35,7 @@ class GmailService:
         Returns a generated user_id. Currently a static placeholder; in
         production this should be tied to an authenticated user/session.
         """
-        flow = self.get_flow(scopes, redirect_uri)
-        flow.fetch_token(code=code)
-        credentials: Credentials = flow.credentials
+        credentials: Credentials = exchange_code_for_credentials(settings.CLIENT_SECRETS_FILE, code, scopes, redirect_uri)
 
         # TODO: use real user id from session/JWT
         user_id = "user_123"
