@@ -7,6 +7,7 @@ from routes.gmail.repo import GmailRepo
 from fastapi import Depends
 from dependencies.db import get_gmail_repo
 from config.settings import settings
+from tools.oauth import handle_oauth_callback
 
 
 router = APIRouter(prefix="/google", tags=["google-auth"])
@@ -31,30 +32,7 @@ async def callback(code: str, state: str = None, response: Response = None, scop
     """Callback endpoint for Google's OAuth; exchanges code for tokens."""
     try:
         service = GmailService(repo=repo)
-        result = await service.exchange_code_for_credentials(code, scope, settings.GOOGLE_REDIRECT_URI)
-        user_id = result.get("user_id")
-        user_info = result.get("user_info") or {}
-        scope_val = result.get("scope")
-
-        # Normalize scopes into a list for the response
-        if isinstance(scope_val, str):
-            scopes = scope_val.split() if scope_val else []
-        elif isinstance(scope_val, (list, tuple)):
-            scopes = list(scope_val)
-        else:
-            if isinstance(scope, str):
-                scopes = scope.split() if scope else []
-            elif isinstance(scope, (list, tuple)):
-                scopes = list(scope)
-            else:
-                scopes = []
-
-        # Set user_info cookie on the provided response (HTTPOnly). In prod, set secure=True.
-        if response is not None:
-            response.set_cookie("user_info", json.dumps(user_info), httponly=True, secure=False,
-                                domain=settings.FRONT_URL)
-
-        return {"message": "Authorization successful", "user_id": user_id, "user_info": user_info,
-                "scopes": ''.join(scopes)}
+        return await handle_oauth_callback(service, code, scope, settings.GOOGLE_REDIRECT_URI, response,
+                                           settings.FRONT_URL, message="Authorization successful")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Authorization failed: {str(e)}")
