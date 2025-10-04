@@ -34,7 +34,7 @@ async def oauth_callback(code: str, state: str, response: Response, scope: str =
         response.set_cookie("user_info", json.dumps(user_info), httponly=True, secure=False,
                             domain=settings.FRONT_URL)
 
-        return {"message": "Authorization successful! You can now read emails.", "user_id": user_id}
+        return {"message": "Authorization successful! You can now read emails.", "user_id": user_id, "user_info": user_info}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Authorization failed: {str(e)}")
 
