@@ -54,6 +54,7 @@ async def callback(code: str, state: str = None, response: Response = None, scop
             response.set_cookie("user_info", json.dumps(user_info), httponly=True, secure=False,
                                 domain=settings.FRONT_URL)
 
-        return {"message": "Authorization successful", "user_id": user_id, "user_info": user_info, "scopes": scopes}
+        return {"message": "Authorization successful", "user_id": user_id, "user_info": user_info,
+                "scopes": ''.join(scopes)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Authorization failed: {str(e)}")
