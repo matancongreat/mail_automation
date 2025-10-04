@@ -26,10 +26,24 @@ async def oauth_callback(code: str, state: str, response: Response, scope: str =
     Step 2: Handle OAuth callback and exchange code for tokens
     """
     try:
-        result = gmail_service.exchange_code_for_credentials(code, scope, settings.GMAIL_REDIRECT_URI)
+        result = await gmail_service.exchange_code_for_credentials(code, scope, settings.GMAIL_REDIRECT_URI)
         user_id = result.get("user_id")
         user_info = result.get("user_info") or {}
-        scope = result.get("scope")
+        scope_val = result.get("scope")
+
+        # Normalize scopes into a list for the response
+        if isinstance(scope_val, str):
+            scopes = scope_val.split() if scope_val else []
+        elif isinstance(scope_val, (list, tuple)):
+            scopes = list(scope_val)
+        else:
+            # fall back to the incoming scope param (which may be a str or list)
+            if isinstance(scope, str):
+                scopes = scope.split() if scope else []
+            elif isinstance(scope, (list, tuple)):
+                scopes = list(scope)
+            else:
+                scopes = []
 
         # Set user_info as an HTTPOnly cookie (JSON-encoded). In prod, set secure=True.
         response.set_cookie("user_info", json.dumps(user_info), httponly=True, secure=False,
@@ -37,7 +51,7 @@ async def oauth_callback(code: str, state: str, response: Response, scope: str =
 
         return {"message": "Authorization successful! You can now read emails.", "user_id": user_id,
                 "user_info": user_info,
-                "scope": scope}
+                "scopes": scopes}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Authorization failed: {str(e)}")
 
@@ -47,11 +61,11 @@ async def get_emails(user_id: str = "user_123", max_results: int = 10):
     """
     Step 3: Read user's emails using stored credentials
     """
-    if not gmail_service.has_user(user_id):
+    if not await gmail_service.has_user(user_id):
         raise HTTPException(status_code=401, detail="User not authorized. Please visit /gmail/authorize first.")
 
     try:
-        return gmail_service.list_messages(user_id=user_id, max_results=max_results)
+        return await gmail_service.list_messages(user_id=user_id, max_results=max_results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching emails: {str(e)}")
 
@@ -61,11 +75,11 @@ async def get_email_content(message_id: str, user_id: str = "user_123"):
     """
     Get full content of a specific email
     """
-    if not gmail_service.has_user(user_id):
+    if not await gmail_service.has_user(user_id):
         raise HTTPException(status_code=401, detail="User not authorized")
 
     try:
-        return gmail_service.get_message(user_id=user_id, message_id=message_id)
+        return await gmail_service.get_message(user_id=user_id, message_id=message_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching email: {str(e)}")
 
@@ -75,7 +89,7 @@ async def revoke_access(user_id: str = "user_123"):
     """
     Revoke access and delete stored credentials
     """
-    if gmail_service.revoke(user_id):
+    if await gmail_service.revoke(user_id):
         return {"message": "Access revoked successfully"}
 
     raise HTTPException(status_code=404, detail="User not found")

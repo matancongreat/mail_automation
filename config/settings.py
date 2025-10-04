@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     GOOGLE_SCOPES: Union[str|List[str]] = [s for s in os.getenv("GOOGLE_SCOPES")]
     CORS_HOSTS: List[str] = ["http://localhost:8080", "http://localhost:8000"]
     FRONT_URL: str = os.getenv("FRONT_URL")
+    # MongoDB settings for storing credentials and user info
+    MONGO_URI: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    MONGO_DB: str = os.getenv("MONGO_DB", "mail_automation")
 
 
 settings = Settings()

@@ -3,3 +3,4 @@ uvicorn
 pydantic_settings
 google
 google-api-python-client
+motor
