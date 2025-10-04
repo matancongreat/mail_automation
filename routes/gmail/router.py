@@ -20,13 +20,15 @@ async def authorize():
 
 
 @router.get("/callback")
-async def oauth_callback(code: str, state: str):
+async def oauth_callback(code: str, state: str, scope: str = settings.GMAIL_SCOPES):
     """
     Step 2: Handle OAuth callback and exchange code for tokens
     """
     try:
-        user_id = gmail_service.exchange_code_for_credentials(code, settings.GMAIL_SCOPES, settings.GMAIL_REDIRECT_URI)
-        return {"message": "Authorization successful! You can now read emails.", "user_id": user_id}
+        result = gmail_service.exchange_code_for_credentials(code, scope, settings.GMAIL_REDIRECT_URI)
+        user_id = result.get("user_id")
+        user_info = result.get("user_info")
+        return {"message": "Authorization successful! You can now read emails."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Authorization failed: {str(e)}")
 

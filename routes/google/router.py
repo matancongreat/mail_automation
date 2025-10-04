@@ -23,11 +23,13 @@ async def authenticate():
 
 
 @router.get("/callback")
-async def callback(code: str, state: str = None):
+async def callback(code: str, state: str = None, scope: str = settings.GOOGLE_SCOPES):
     """Callback endpoint for Google's OAuth; exchanges code for tokens."""
     try:
-        user_id = gmail_service.exchange_code_for_credentials(code, settings.GOOGLE_SCOPES, settings.GOOGLE_REDIRECT_URI)
+        result = gmail_service.exchange_code_for_credentials(code, scope, settings.GOOGLE_REDIRECT_URI)
+        user_id = result.get("user_id")
+        user_info = result.get("user_info")
         # After exchanging tokens, you might want to redirect users to a UI route.
-        return {"message": "Authorization successful", "user_id": user_id}
+        return {"message": "Authorization successful"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Authorization failed: {str(e)}")

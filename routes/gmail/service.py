@@ -16,6 +16,8 @@ class GmailService:
     def __init__(self):
         # In-memory store for user credentials. Replace with DB in production.
         self._user_credentials: Dict[str, UserCredentials] = {}
+        # Store decoded id_token payloads by user_id
+        self._user_info: Dict[str, Dict[str, Any]] = {}
 
     def get_flow(self, scopes, redirect_uri) -> Flow:
         """Create OAuth flow using provided scopes and redirect_uri."""
@@ -37,8 +39,25 @@ class GmailService:
         """
         credentials: Credentials = exchange_code_for_credentials(settings.CLIENT_SECRETS_FILE, code, scopes, redirect_uri)
 
+        # Extract id_token if present and verify it to get user info
+        id_token_val = getattr(credentials, "id_token", None)
+        user_info = None
+        if id_token_val:
+            try:
+                from google.oauth2 import id_token as google_id_token
+                from google.auth.transport import requests as auth_requests
+
+                request = auth_requests.Request()
+                # Verify token; audience is the client_id
+                aud = credentials.client_id if hasattr(credentials, 'client_id') else None
+                user_info = google_id_token.verify_oauth2_token(id_token_val, request, aud)
+            except Exception:
+                user_info = None
+
         # TODO: use real user id from session/JWT
-        user_id = "user_123"
+        user_id = user_info['sub']
+
+        # Store core credentials (not storing id_token on the model to keep model simple)
         self._user_credentials[user_id] = UserCredentials(
             token=credentials.token,
             refresh_token=credentials.refresh_token,
@@ -47,7 +66,10 @@ class GmailService:
             scopes=list(credentials.scopes) if credentials.scopes else []
         )
 
-        return user_id
+        if user_info:
+            self._user_info[user_id] = user_info
+
+        return {"user_id": user_id, "user_info": user_info}
 
     def has_user(self, user_id: str) -> bool:
         return user_id in self._user_credentials
