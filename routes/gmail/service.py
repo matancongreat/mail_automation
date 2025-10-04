@@ -54,7 +54,6 @@ class GmailService:
             except Exception:
                 user_info = None
 
-        # TODO: use real user id from session/JWT
         user_id = user_info['sub']
 
         # Store core credentials (not storing id_token on the model to keep model simple)

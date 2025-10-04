@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI")
     GOOGLE_SCOPES: Union[str|List[str]] = [s for s in os.getenv("GOOGLE_SCOPES")]
     CORS_HOSTS: List[str] = ["http://localhost:8080", "http://localhost:8000"]
+    FRONT_URL: str = os.getenv("FRONT_URL")
 
 
 settings = Settings()

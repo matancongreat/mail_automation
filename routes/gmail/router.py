@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
+import json
 
 from routes.gmail.service import GmailService
 from config.settings import settings
@@ -20,15 +21,20 @@ async def authorize():
 
 
 @router.get("/callback")
-async def oauth_callback(code: str, state: str, scope: str = settings.GMAIL_SCOPES):
+async def oauth_callback(code: str, state: str, response: Response, scope: str = settings.GMAIL_SCOPES):
     """
     Step 2: Handle OAuth callback and exchange code for tokens
     """
     try:
         result = gmail_service.exchange_code_for_credentials(code, scope, settings.GMAIL_REDIRECT_URI)
         user_id = result.get("user_id")
-        user_info = result.get("user_info")
-        return {"message": "Authorization successful! You can now read emails."}
+        user_info = result.get("user_info") or {}
+
+        # Set user_info as an HTTPOnly cookie (JSON-encoded). In prod, set secure=True.
+        response.set_cookie("user_info", json.dumps(user_info), httponly=True, secure=False,
+                            domain=settings.FRONT_URL)
+
+        return {"message": "Authorization successful! You can now read emails.", "user_id": user_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Authorization failed: {str(e)}")
 
