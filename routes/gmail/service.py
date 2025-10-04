@@ -16,16 +16,18 @@ class GmailService:
         # In-memory store for user credentials. Replace with DB in production.
         self._user_credentials: Dict[str, UserCredentials] = {}
 
-    def get_flow(self) -> Flow:
-        """Create OAuth flow"""
+    def get_flow(self, scopes, redirect_uri) -> Flow:
+        """Create OAuth flow using provided scopes and redirect_uri."""
+
         return Flow.from_client_secrets_file(
             settings.CLIENT_SECRETS_FILE,
-            scopes=settings.SCOPES,
-            redirect_uri=settings.REDIRECT_URI
+            scopes=scopes,
+            redirect_uri=redirect_uri,
         )
 
-    def get_authorization_url(self) -> Dict[str, str]:
-        flow = self.get_flow()
+    def get_authorization_url(self, scopes, redirect_uri) -> Dict[str, str]:
+        # scopes and redirect_uri are required — caller must pass them explicitly.
+        flow = self.get_flow(scopes, redirect_uri)
         authorization_url, state = flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true',
@@ -33,13 +35,13 @@ class GmailService:
         )
         return {"authorization_url": authorization_url, "state": state}
 
-    def exchange_code_for_credentials(self, code: str) -> str:
+    def exchange_code_for_credentials(self, code: str, scopes, redirect_uri) -> str:
         """Exchange OAuth code for credentials and store them.
 
         Returns a generated user_id. Currently a static placeholder; in
         production this should be tied to an authenticated user/session.
         """
-        flow = self.get_flow()
+        flow = self.get_flow(scopes, redirect_uri)
         flow.fetch_token(code=code)
         credentials: Credentials = flow.credentials
 

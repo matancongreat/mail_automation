@@ -5,8 +5,12 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     CLIENT_SECRETS_FILE: str = os.getenv("CLIENT_SECRETS_FILE")
-    REDIRECT_URI: str = os.getenv("REDIRECT_URI")
-    SCOPES: str = [scope for scope in os.getenv("SCOPES").split(",")]
+    # Separate settings for Gmail vs Google (frontend) flows
+    GMAIL_REDIRECT_URI: str = os.getenv("GMAIL_REDIRECT_URI") or REDIRECT_URI
+    GMAIL_SCOPES: List[str] = [s for s in (os.getenv("GMAIL_SCOPES") or ",".join(SCOPES)).split(",")]
+
+    GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI") or REDIRECT_URI
+    GOOGLE_SCOPES: List[str] = [s for s in (os.getenv("GOOGLE_SCOPES") or ",".join(SCOPES)).split(",")]
     CORS_HOSTS: List[str] = ["http://localhost:8080", "http://localhost:8000"]
 
 
