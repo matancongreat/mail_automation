@@ -30,12 +30,14 @@ async def callback(code: str, state: str = None, response: Response = None, scop
         result = gmail_service.exchange_code_for_credentials(code, scope, settings.GOOGLE_REDIRECT_URI)
         user_id = result.get("user_id")
         user_info = result.get("user_info") or {}
+        scope = result.get("scope")
 
         # Set user_info cookie on the provided response (HTTPOnly). In prod, set secure=True.
         if response is not None:
             response.set_cookie("user_info", json.dumps(user_info), httponly=True, secure=False,
                                 domain=settings.FRONT_URL)
 
-        return {"message": "Authorization successful", "user_id": user_id, "user_info": user_info}
+        return {"message": "Authorization successful", "user_id": user_id, "user_info": user_info,
+                "scope": scope}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Authorization failed: {str(e)}")

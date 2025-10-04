@@ -31,7 +31,7 @@ class GmailService:
         authorization_url, state = build_authorization_url(settings.CLIENT_SECRETS_FILE, scopes, redirect_uri)
         return {"authorization_url": authorization_url, "state": state}
 
-    def exchange_code_for_credentials(self, code: str, scopes, redirect_uri) -> str:
+    def exchange_code_for_credentials(self, code: str, scopes, redirect_uri) -> dict[str, list[Any] | None | Any]:
         """Exchange OAuth code for credentials and store them.
 
         Returns a generated user_id. Currently a static placeholder; in
@@ -55,20 +55,20 @@ class GmailService:
                 user_info = None
 
         user_id = user_info['sub']
-
+        scopes = credentials.scopes
         # Store core credentials (not storing id_token on the model to keep model simple)
         self._user_credentials[user_id] = UserCredentials(
             token=credentials.token,
             refresh_token=credentials.refresh_token,
             token_uri=credentials.token_uri,
             client_id=credentials.client_id,
-            scopes=list(credentials.scopes) if credentials.scopes else []
+            scopes=list(scopes) if scopes else []
         )
 
         if user_info:
             self._user_info[user_id] = user_info
 
-        return {"user_id": user_id, "user_info": user_info}
+        return {"user_id": user_id, "user_info": user_info, "scope": scopes.split(" ")}
 
     def has_user(self, user_id: str) -> bool:
         return user_id in self._user_credentials

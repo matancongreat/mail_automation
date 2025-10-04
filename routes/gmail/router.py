@@ -29,12 +29,15 @@ async def oauth_callback(code: str, state: str, response: Response, scope: str =
         result = gmail_service.exchange_code_for_credentials(code, scope, settings.GMAIL_REDIRECT_URI)
         user_id = result.get("user_id")
         user_info = result.get("user_info") or {}
+        scope = result.get("scope")
 
         # Set user_info as an HTTPOnly cookie (JSON-encoded). In prod, set secure=True.
         response.set_cookie("user_info", json.dumps(user_info), httponly=True, secure=False,
                             domain=settings.FRONT_URL)
 
-        return {"message": "Authorization successful! You can now read emails.", "user_id": user_id, "user_info": user_info}
+        return {"message": "Authorization successful! You can now read emails.", "user_id": user_id,
+                "user_info": user_info,
+                "scope": scope}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Authorization failed: {str(e)}")
 
