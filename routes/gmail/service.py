@@ -5,7 +5,7 @@ from config.settings import settings
 from typing import Dict, Any, List, Optional
 from models.user_credentials import UserCredentials
 from tools.google_api import build_authorization_url, exchange_code_for_credentials
-from repositories.repo import MongoRepo
+from routes.gmail.repo import GmailRepo
 import asyncio
 from functools import partial
 
@@ -18,8 +18,8 @@ class GmailService:
     """
 
     def __init__(self):
-        # Use MongoDB repository for persistence
-        self._repo = MongoRepo()
+    # Use Gmail-scoped repo backed by the shared MongoConnector
+        self._repo = GmailRepo()
 
     def get_flow(self, scopes, redirect_uri) -> Flow:
         """Create OAuth flow using provided scopes and redirect_uri."""
